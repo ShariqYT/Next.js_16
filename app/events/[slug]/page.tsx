@@ -1,11 +1,13 @@
 import {notFound} from "next/navigation";
 import Image from "next/image";
 import BookEvent from "@/components/BookEvent";
-import {IEvent} from "@/database";
-import {getSimilarEventsBySlug} from "@/lib/actions/event.actions";
+import {getSimilarEventsBySlug, ILeanEvent} from "@/lib/actions/event.actions";
 import EventCard from "@/components/EventCard";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+
+// Use the same ILeanEvent interface for consistency
+interface FetchedEvent extends ILeanEvent {}
 
 const EventDetailItems = ({icon, alt, label}: {icon: string, alt: string, label: string}) => (
     <div className={"flex-row-gap-2 items-center"}>
@@ -14,7 +16,7 @@ const EventDetailItems = ({icon, alt, label}: {icon: string, alt: string, label:
     </div>
 )
 
-const EventAgenda = ({agendaItems}: {agendaItems: string[]})=> (
+const EventAgenda = ({agendaItems}: {agendaItems: string[]}) => (
     <div className={"agenda"}>
         <h2>Agenda</h2>
         <ul>
@@ -25,7 +27,7 @@ const EventAgenda = ({agendaItems}: {agendaItems: string[]})=> (
     </div>
 )
 
-const EventTags = ({tags}: {tags: string[]})=> (
+const EventTags = ({tags}: {tags: string[]}) => (
     <div className={"flex flex-row gap-2 flex-wrap"}>
         {tags.map((tag) => (
             <div key={tag} className={"pill"}>{tag}</div>
@@ -36,7 +38,7 @@ const EventTags = ({tags}: {tags: string[]})=> (
 const EventDetailsPage = async ({params}: {params: Promise<{slug: string}>}) => {
     const { slug } = await params;
 
-    let event;
+    let event: FetchedEvent;
     try {
         const request = await fetch(`${BASE_URL}/api/events/${slug}`, {
             next: { revalidate: 60 }
@@ -55,7 +57,7 @@ const EventDetailsPage = async ({params}: {params: Promise<{slug: string}>}) => 
         if(!event) {
             return notFound()
         }
-    }catch (error) {
+    } catch (error) {
         console.error('Error fetching event:', error)
         return notFound()
     }
@@ -66,7 +68,7 @@ const EventDetailsPage = async ({params}: {params: Promise<{slug: string}>}) => 
 
     const bookings = 10;
 
-    const similarEvents: IEvent[] = await getSimilarEventsBySlug(slug);
+    const similarEvents: ILeanEvent[] = await getSimilarEventsBySlug(slug);
 
     return (
         <section id={"event"}>
@@ -77,7 +79,7 @@ const EventDetailsPage = async ({params}: {params: Promise<{slug: string}>}) => 
             <div className={"details"}>
                 {/* Left Side - Event Content */}
                 <div className={"content"}>
-                    <Image src={image} alt={"Event Banner"} width={"800"} height={"800"} className={"banner"}/>
+                    <Image src={image} alt={"Event Banner"} width={800} height={800} className={"banner"}/>
 
                     <section className={"flex-col-gap-2"}>
                         <h2>Overview</h2>
@@ -123,12 +125,13 @@ const EventDetailsPage = async ({params}: {params: Promise<{slug: string}>}) => 
             <div className={"w-full mt-20"}>
                 <h2 className={"!mb-4 !pb-4"}>Similar Events</h2>
                 <div className={"events !mt-4 !pt-4"}>
-                    {similarEvents.length > 0 && similarEvents.map((similarEvent: IEvent) => (
-                        <EventCard key={similarEvent.title} {...similarEvent} />
+                    {similarEvents.length > 0 && similarEvents.map((similarEvent: ILeanEvent) => (
+                        <EventCard key={similarEvent._id.toString()} {...similarEvent} />
                     ))}
                 </div>
             </div>
         </section>
     );
 }
-export default EventDetailsPage
+
+export default EventDetailsPage;
